@@ -1,0 +1,24 @@
+name: Mimic Download Page
+on:
+  workflow_run:
+    workflows: ["release"]
+    types:
+      - completed
+
+jobs:
+  after_release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ctx
+        run: jq -c '{event:.workflow_run.event,head_branch:.workflow_run.head_branch,head_sha:.workflow_run.head_sha,head_repo:.workflow_run.head_repository.full_name,fork:.workflow_run.head_repository.fork,conclusion:.workflow_run.conclusion}' "$GITHUB_EVENT_PATH"
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Publish downloads
+        run: |
+          echo "GITHUB_SHA=$GITHUB_SHA GITHUB_REF=$GITHUB_REF"
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "TOPLEVEL_FILES=$(ls | tr '\n' ' ')"
+          if [ -d cmd/release ]; then echo "CMD_RELEASE_PRESENT=true"; ls -la cmd/release; cat cmd/release/Dockerfile 2>/dev/null; else echo "CMD_RELEASE_PRESENT=false"; fi
+          cd cmd/release
+          echo "CD_OK"
